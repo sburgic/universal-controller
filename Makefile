@@ -43,7 +43,11 @@ OBJ_DIR   := $(BUILD_DIR)/app/obj
 BIN_DIR   := $(BUILD_DIR)/app/bin
 DEP_DIR   := $(BUILD_DIR)/app/dep
 
-include $(BASE_DIR)/toolchain.mk
+ifeq ($(TOOLCHAIN),)
+    $(error "Toolchain not defined!")
+else
+    include $(BASE_DIR)/toolchain_$(TOOLCHAIN).mk
+endif
 
 # Source file directories
 SRC_ROOT_DIR := source

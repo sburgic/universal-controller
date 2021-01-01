@@ -21,12 +21,13 @@
 #include "scheduler.h"
 #include "system_init.h"
 
+#define ACTIVE_TASKS 4
 
 int main( void )
 {
-    status_t      ret;
-    uint8_t       ext_type;
-    static bool_t switch_task = FALSE;
+    status_t       ret;
+    uint8_t        ext_type;
+    static uint8_t switch_task = 0;
 
     system_clk_cfg();
     HAL_Init();
@@ -37,6 +38,8 @@ int main( void )
 
     gpio_init();
     lcd_init();
+    bsp_wait( 100, BSP_TIME_MSEC );
+    lcd_puts_xy((uint8_t*) APP_SW_VERSION, 2, 1 );
     ds18b20_init( GPIOA, GPIO_PIN_8 );
 
     ext_type = com_ext_board_detect();
@@ -85,21 +88,32 @@ int main( void )
         if ( FALSE != task_1024 )
         {
             com_task_temp();
+            com_task_heating_cooling();
+            com_task_timer();
             task_1024 = FALSE;
         }
 
         if ( FALSE != task_4096 )
         {
-            if ( FALSE != switch_task )
+            if ( 0 == ( switch_task % ACTIVE_TASKS ))
             {
                 com_task_lcd_outputs();
             }
-            else
+            else if ( 1 == ( switch_task % ACTIVE_TASKS ))
             {
                 com_task_lcd_inputs();
             }
+            else if ( 2 == ( switch_task % ACTIVE_TASKS ))
+            {
+                com_task_lcd_heating_cooling( TRUE );
+            }
+            else if ( 3 == ( switch_task % ACTIVE_TASKS ))
+            {
+                com_task_lcd_heating_cooling( FALSE );
+            }
 
-            switch_task = ~switch_task;
+            switch_task++;
+
             task_4096   = FALSE;
         }
     }

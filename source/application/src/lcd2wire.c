@@ -153,7 +153,7 @@ int8_t lcd_puts_xy( const uint8_t* str, uint8_t x, uint8_t y )
     {
         lcd_goto_rc( y, x );
 
-        for ( i = 0; str[i]!='\0'; i++ )
+        for ( i = 0; ( str[i]!='\0' ) && ( i < 16 ) ; i++ )
         {
             lcd_putch( str[i] );
         }

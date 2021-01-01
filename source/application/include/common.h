@@ -20,9 +20,9 @@
 
 enum
 {
-    BOARD_NONE  = 0x6, //0x0
+    BOARD_NONE  = 0x0,
     BOARD_GSM   = 0x5,
-    BOARD_RF_BT = 0x0, //0x6
+    BOARD_RF_BT = 0x6,
     BOARD_RF_CC = 0x7
 };
 
@@ -35,14 +35,15 @@ typedef struct
 typedef struct
 {
     bool_t  active[COM_MAX_TEMP_DEVICES];
+    bool_t  flag[COM_MAX_TEMP_DEVICES];
     int16_t value[COM_MAX_TEMP_DEVICES];
-} Com_Temp_Heat_t;
+} Com_Temp_Heat_Cool_t;
 
 typedef struct
 {
-    Ds_Hdl_t*       ds_hdl;
-    Com_Ds_Buff_t   ds_buff;
-    Com_Temp_Heat_t heat;
+    Ds_Hdl_t*            ds_hdl;
+    Com_Ds_Buff_t        ds_buff;
+    Com_Temp_Heat_Cool_t heat_cool;
 } Com_Temp_Data_t;
 
 void com_error_handler( void );
@@ -60,10 +61,23 @@ void com_output_state_to_string( uint8_t*  buff
                                , uint8_t   output
                                , uint8_t   state
                                );
+void com_heating_state_to_string( uint8_t*  buff
+                                , uint16_t* len
+                                , uint8_t   io
+                                );
+void com_cooling_state_to_string( uint8_t*  buff
+                                , uint16_t* len
+                                , uint8_t   io
+                                );
+void com_set_heating_cooling( uint8_t sens, int16_t temperature, bool_t flag );
 void com_basic_init( uint8_t ext_board_type );
+bool_t com_process_msg( uint8_t* msg, uint16_t* len, uint16_t offset );
 void com_task_temp( void );
+void com_task_heating_cooling( void );
+void com_task_timer( void );
 void com_task_lcd_inputs( void );
 void com_task_lcd_outputs( void );
+void com_task_lcd_heating_cooling( bool_t flag );
 Com_Temp_Data_t* com_get_temp_hdl( void );
 
 #endif /* __COMMON_H__ */

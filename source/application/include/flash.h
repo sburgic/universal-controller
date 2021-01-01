@@ -35,13 +35,9 @@
 
 #define FLASH_PAGE_ERASE_OK (uint32_t)(0xFFFFFFFF)
 
-#ifdef STM32F100xB
-    #define FLASH_COPY_PAGE_ADDR FLASH_ADDR_PAGE_63
-    #define FLASH_USER_PAGE_ADDR FLASH_ADDR_PAGE_62
-#else
-    #define FLASH_COPY_PAGE_ADDR FLASH_ADDR_PAGE_127
-    #define FLASH_USER_PAGE_ADDR FLASH_ADDR_PAGE_126
-#endif
+#define FLASH_COPY_PAGE_ADDR FLASH_ADDR_PAGE_63
+#define FLASH_USER_PAGE_ADDR FLASH_ADDR_PAGE_62
+
 
 status_t flash_read( void* buff, uint32_t size, uint32_t offset );
 status_t flash_write( void* buff, uint32_t size, uint32_t offset );
