@@ -7,6 +7,7 @@
  **
  ** Revision
  **   16-Dec-2020 (SSB) [] Initial
+ **   16-Jan-2021 (SSB) [] Fix timeout values
  **/
 
 #include "bluetooth.h"
@@ -16,6 +17,7 @@
 #include "utils.h"
 
 #define BT_INIT_TIMEOUT_MS ((Bsp_Time)1000)
+#define BT_RESP_TIMEOUT_MS ((Bsp_Time)1000)
 
 #define BT_MSG_TIMEOUT_MS  ((Bsp_Time)64)
 #define BT_MSG_MIN_SIZE    8
@@ -42,7 +44,7 @@ static uint16_t bt_get_response( uint8_t* buff, uint16_t len )
     bool_t   is_timed_out;
     bool_t   is_empty;
 
-    bsp_set_timeout( BT_INIT_TIMEOUT_MS
+    bsp_set_timeout( BT_RESP_TIMEOUT_MS
                    , BSP_TIME_MSEC
                    , &timeout
                    );
@@ -57,7 +59,7 @@ static uint16_t bt_get_response( uint8_t* buff, uint16_t len )
             buff[cnt] = uart_getc( BT_UART );
             cnt++;
         }
-    } while (( cnt < len ) && ( is_timed_out != TRUE ));
+    } while (( cnt < len ) && ( FALSE == is_timed_out ));
 
     return cnt;
 }
@@ -72,13 +74,13 @@ status_t bt_init( void )
     if ( STATUS_ERROR != ret )
     {
         uart_send( BT_UART, BT_CMD_AT, 2 );
-    }
 
-    bt_get_response( bt_buff, 2 );
+        bt_get_response( bt_buff, 2 );
 
-    if ( 0 != util_strcmp( bt_buff, BT_RESP_AT_OK, 2 ))
-    {
-        ret = STATUS_ERROR;
+        if ( 0 != util_strcmp( bt_buff, BT_RESP_AT_OK, 2 ))
+        {
+            ret = STATUS_ERROR;
+        }
     }
 
     if ( STATUS_ERROR != ret )
@@ -135,7 +137,7 @@ void bt_task( void )
                 bt_buff[cnt] = uart_getc( BT_UART );
                 cnt++;
             }
-        } while ( is_timed_out != TRUE );
+        } while ( FALSE == is_timed_out );
     }
 
      bt_buff[cnt] = '\0';
