@@ -7,11 +7,14 @@
  **
  ** Revision
  **   10-Dec-2020 (SSB) [] Initial
+ **   17-Jan-2021 (SSB) [] Add CC1101
+                           Remove GSM support
  **/
 
 #include "main.h"
 
 #include "bluetooth.h"
+#include "cc1101.h"
 #include "common.h"
 #include "ds18b20.h"
 #include "gpio.h"
@@ -46,9 +49,6 @@ int main( void )
 
     switch( ext_type )
     {
-        case BOARD_GSM:
-            // gsm_init();
-            break;
         case BOARD_RF_BT:
             ret = bt_init();
             if ( STATUS_OK != ret )
@@ -58,7 +58,16 @@ int main( void )
             }
             break;
         case BOARD_RF_CC:
-            // cc_init();
+            ret = cc_init( CC_MOD_GFSK_1_2_KB
+                         , CC_ISM_434_MHZ
+                         , CC_OUTPUT_PWR_M30
+                         , CC_RF_CHANNEL_0
+                         );
+            if ( STATUS_OK != ret )
+            {
+                lcd_puts_xy((uint8_t*) "E:RF init fail.", 0, 1 );
+                com_error_handler();
+            }
             break;
         default:
             lcd_puts_xy((uint8_t*) "E:No ext. board", 0, 1 );
@@ -72,14 +81,11 @@ int main( void )
     {
         switch( ext_type )
         {
-            case BOARD_GSM:
-                // gsm_task();
-                break;
             case BOARD_RF_BT:
                 bt_task();
                 break;
             case BOARD_RF_CC:
-                // cc_task();
+                cc_task();
                 break;
             default:
                 break;
@@ -114,7 +120,7 @@ int main( void )
 
             switch_task++;
 
-            task_4096   = FALSE;
+            task_4096 = FALSE;
         }
     }
 

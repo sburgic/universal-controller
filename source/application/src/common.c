@@ -7,6 +7,7 @@
  **
  ** Revision
  **   17-Dec-2020 (SSB) [] Initial
+ **   17-Jan-2021 (SSB) [] Use common buffer for all modules
  **/
 
 #include "common.h"
@@ -23,10 +24,11 @@ typedef struct
     Bsp_Time timestamp[2];
 } Com_Out_Timer_t;
 
-static uint8_t         ext_type         = BOARD_NONE;
-static uint8_t         lcd_out[16]      = {0};
-static Com_Temp_Data_t temperature_data = {0};
-static Com_Out_Timer_t out_timer        = {0};
+static uint8_t         ext_type                     = BOARD_NONE;
+static uint8_t         lcd_out[16]                  = {0};
+static Com_Temp_Data_t temperature_data             = {0};
+static Com_Out_Timer_t out_timer                    = {0};
+static uint8_t         common_buffer[COM_BUFF_SIZE] = {0};
 
 
 static int16_t com_find_char( uint8_t* str, uint16_t len, uint8_t ch )
@@ -698,4 +700,9 @@ void com_task_lcd_heating_cooling( bool_t flag )
 Com_Temp_Data_t* com_get_temp_hdl( void )
 {
     return &temperature_data;
+}
+
+uint8_t* com_get_buff_hdl( void )
+{
+    return &common_buffer[0];
 }
