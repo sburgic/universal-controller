@@ -6,6 +6,7 @@
 ##
 ## Revision
 ##    07-Dec-2020 (SSB) [] Initial
+##    17-Jan-2021 (SSB) [] Add CC1101
 
 BASE_DIR := ../base
 LIBS_DIR := ../libs
@@ -55,6 +56,7 @@ SRC_ROOT_DIR := source
 # List of object files to be compiled
 APP_OBJ_LIST := bluetooth.o \
                 buffer.o \
+                cc1101.o \
                 common.o \
                 flash.o \
                 gpio.o \

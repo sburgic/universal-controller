@@ -7,6 +7,8 @@
  **
  ** Revision
  **   17-Dec-2020 (SSB) [] Initial
+ **   17-Jan-2021 (SSB) [] Add common buffer for all modules
+                           Remove GSM board support
  **/
 
 #ifndef __COMMON_H__
@@ -17,11 +19,11 @@
 #include "ds18b20.h"
 
 #define COM_MAX_TEMP_DEVICES 2
+#define COM_BUFF_SIZE        1024
 
 enum
 {
     BOARD_NONE  = 0x0,
-    BOARD_GSM   = 0x5,
     BOARD_RF_BT = 0x6,
     BOARD_RF_CC = 0x7
 };
@@ -79,5 +81,6 @@ void com_task_lcd_inputs( void );
 void com_task_lcd_outputs( void );
 void com_task_lcd_heating_cooling( bool_t flag );
 Com_Temp_Data_t* com_get_temp_hdl( void );
+uint8_t* com_get_buff_hdl( void );
 
 #endif /* __COMMON_H__ */

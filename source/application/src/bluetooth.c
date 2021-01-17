@@ -8,6 +8,7 @@
  ** Revision
  **   16-Dec-2020 (SSB) [] Initial
  **   16-Jan-2021 (SSB) [] Fix timeout values
+ **   17-Jan-2021 (SSB) [] Use common buffer for all modules
  **/
 
 #include "bluetooth.h"
@@ -35,7 +36,7 @@
 #define BT_RESP_AT_NAME ((uint8_t*)"OKsetname")
 #define BT_RESP_AT_PIN  ((uint8_t*)"OKsetPIN")
 
-static uint8_t bt_buff[BT_MSG_MIN_SIZE << 4] = {0};
+static uint8_t* bt_buff;
 
 static uint16_t bt_get_response( uint8_t* buff, uint16_t len )
 {
@@ -68,6 +69,7 @@ status_t bt_init( void )
 {
     status_t ret = STATUS_OK;
 
+    bt_buff = com_get_buff_hdl();
     bsp_wait( 1000, BSP_TIME_MSEC );
     ret = uart_init( BT_UART, BT_BAUDRATE );
 
