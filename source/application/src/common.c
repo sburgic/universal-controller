@@ -8,6 +8,7 @@
  ** Revision
  **   17-Dec-2020 (SSB) [] Initial
  **   17-Jan-2021 (SSB) [] Use common buffer for all modules
+ **   24-Jan-2021 (SSB) [] Add support for IAR compiler
  **/
 
 #include "common.h"
@@ -16,6 +17,10 @@
 #include "lcd2wire.h"
 #include "time.h"
 #include "utils.h"
+
+#ifndef __UINT64_MAX__
+#define __UINT64_MAX__ 0xFFFFFFFFFFFFFFFF
+#endif
 
 typedef struct
 {

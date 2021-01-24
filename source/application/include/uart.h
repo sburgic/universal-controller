@@ -7,6 +7,7 @@
  **
  ** Revision
  **   27-Aug-2020 (SSB) [] Initial
+ **   24-Jan-2021 (SSB) [] Add missing prototypes
  **/
 
 #ifndef __UART_H__
@@ -39,5 +40,7 @@ uint16_t uart_buff_count( USART_TypeDef* uart );
 void uart_clear_buff( USART_TypeDef* uart );
 void uart_set_custom_string_delimiter( USART_TypeDef* uart, uint8_t delim );
 int16_t uart_find_string( USART_TypeDef* uart, char* str );
+void USART1_IRQHandler( void );
+void USART2_IRQHandler( void );
 
 #endif /* __UART_H__ */

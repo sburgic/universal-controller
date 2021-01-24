@@ -7,6 +7,7 @@
  **
  ** Revision
  **   28-Aug-2020 (SSB) [] Initial
+ **   24-Jan-2021 (SSB) [] Add support for IAR compiler
  **/
 
 #include "flash.h"
@@ -42,6 +43,7 @@ status_t flash_write( void* buff, uint32_t size, uint32_t offset )
     uint32_t               page_error;
     uint32_t               i = 0;
     uint32_t               address;
+    uint32_t*              ptr = (uint32_t*)buff;
 
     erase.TypeErase   = FLASH_TYPEERASE_PAGES;
     erase.PageAddress = FLASH_COPY_PAGE_ADDR;
@@ -102,7 +104,7 @@ status_t flash_write( void* buff, uint32_t size, uint32_t offset )
                     hret |= HAL_FLASH_Program
                                 ( FLASH_TYPEPROGRAM_WORD
                                 , FLASH_USER_PAGE_ADDR + address
-                                , *(uint32_t*)( buff + ( i << 2 ))
+                                , *(uint32_t*)( ptr + ( i << 2 ))
                                 );
                 }
 
