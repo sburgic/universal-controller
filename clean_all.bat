@@ -1,0 +1,1 @@
+make BUILD_TYPE=debug MCU=STM32F100xB TOOLCHAIN=iar clean_all
