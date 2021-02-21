@@ -7,6 +7,7 @@
  **
  ** Revision
  **   28-Aug-2020 (SSB) [] Initial
+ **   24-Feb-2021 (SSB) [] Implement basic functionality
  **/
 
 #include "flash.h"
@@ -71,6 +72,33 @@ status_t flash_write( void* buff, uint32_t size, uint32_t offset )
 
         HAL_FLASH_Lock();
     }
+
+    if ( HAL_OK != hret )
+    {
+        ret = STATUS_ERROR;
+    }
+
+    return ret;
+}
+
+status_t flash_erase( void )
+{
+    status_t               ret  = STATUS_OK;
+    HAL_StatusTypeDef      hret;
+    FLASH_EraseInitTypeDef erase = {0};
+    uint32_t               page_error;
+
+    erase.TypeErase   = FLASH_TYPEERASE_PAGES;
+    erase.PageAddress = FLASH_USER_PAGE_ADDR;
+    erase.NbPages     = 1;
+
+    HAL_FLASH_Unlock();
+
+    erase.PageAddress = FLASH_USER_PAGE_ADDR;
+
+    hret = HAL_FLASHEx_Erase( &erase, &page_error );
+
+    HAL_FLASH_Lock();
 
     if ( HAL_OK != hret )
     {

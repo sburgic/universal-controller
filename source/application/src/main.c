@@ -7,6 +7,7 @@
  **
  ** Revision
  **   10-Dec-2020 (SSB) [] Initial
+ **   24-Feb-2021 (SSB) [] Add GSM support
  **/
 
 #include "main.h"
@@ -14,6 +15,7 @@
 #include "bluetooth.h"
 #include "cc1101_task.h"
 #include "common.h"
+#include "flash.h"
 #include "gpio.h"
 #include "gsm.h"
 #include "ptypes.h"
@@ -99,6 +101,11 @@ int main( void )
             break;
         default:
             lcd_puts_xy((uint8_t*) "E:No ext. board", 0, 1 );
+            ret = flash_erase();
+            if ( STATUS_OK != ret )
+            {
+                com_error_handler();
+            }
             break;
     }
 

@@ -7,6 +7,7 @@
  **
  ** Revision
  **   17-Dec-2020 (SSB) [] Initial
+ **   24-Feb-2021 (SSB) [] Add GSM support
  **/
 
 #include "common.h"
@@ -18,7 +19,7 @@
 #include "utils.h"
 
 #ifndef __UINT64_MAX__
-#define __UINT64_MAX__ 0xFFFFFFFFFFFFFFFF
+    #define __UINT64_MAX__ 0xFFFFFFFFFFFFFFFF
 #endif
 
 typedef struct
@@ -34,6 +35,7 @@ static Com_Temp_Data_t temperature_data             = {0};
 static Com_Out_Timer_t out_timer                    = {0};
 static uint8_t         common_buffer[COM_BUFF_SIZE] = {0};
 static Com_Gsm_Props_t gsm_props                    = {0};
+static bool_t          gsm_call_cfg_flag            = FALSE;
 
 static void com_msg_cfg_timer( uint8_t* data, uint8_t io )
 {
@@ -84,6 +86,38 @@ uint8_t com_get_output_state( uint8_t output )
     }
 
     return state;
+}
+
+status_t com_toggle_output_state( uint8_t output )
+{
+    status_t ret = STATUS_OK;
+
+    switch ( output )
+    {
+        case 1:
+            HAL_GPIO_TogglePin( RELAY1_PORT, RELAY1_PIN );
+            ret = STATUS_OK;
+            break;
+        case 2:
+            HAL_GPIO_TogglePin( RELAY2_PORT, RELAY2_PIN );
+            ret = STATUS_OK;
+            break;
+        default:
+            ret = STATUS_ERROR;
+            break;
+    }
+
+    if ( STATUS_ERROR != ret )
+    {
+        /* Clear old configuration if any */
+        if ( FALSE != temperature_data.heat_cool.flag[output - 1] )
+        {
+            temperature_data.heat_cool.flag[output - 1] = FALSE;
+            com_reset_timer( output );
+        }
+    }
+
+    return ret;
 }
 
 status_t com_set_output_state( uint8_t output, uint8_t new_state )
@@ -311,124 +345,142 @@ bool_t com_process_msg( uint8_t* msg, uint16_t* len, uint16_t offset )
     {
         if ( 'G' == msg[offset])
         {
-            if ( 'I' == msg[offset + 1])
+            if ( 5 == ( *len - offset ))
             {
-                io    = msg[offset + 2] - '0';
-                state = com_get_input_state( io );
-
-                if ( 0xFF != state )
+                if ( 'I' == msg[offset + 1])
                 {
-                    com_input_state_to_string( msg
-                                             , len
-                                             , io
-                                             , state
-                                             );
+                    io    = msg[offset + 2] - '0';
+                    state = com_get_input_state( io );
 
-                    ret = TRUE;
+                    if ( 0xFF != state )
+                    {
+                        com_input_state_to_string( msg
+                                                 , len
+                                                 , io
+                                                 , state
+                                                 );
+
+                        ret = TRUE;
+                    }
+                }
+                else if ( 'O' == msg[offset + 1])
+                {
+                    io    = msg[offset + 2] - '0';
+                    state = com_get_output_state( io );
+
+                    if ( 0xFF != state )
+                    {
+                        com_output_state_to_string( msg
+                                                  , len
+                                                  , io
+                                                  , state
+                                                  );
+
+                        ret = TRUE;
+                    }
+                }
+                else if ( 'T' == msg[offset + 1])
+                {
+                    io = msg[offset + 2 ] - '0';
+
+                    if (( io - 1 ) < 2 )
+                    {
+                        util_memcpy( msg
+                                   , temperature_data.ds_buff.out[io - 1]
+                                   , temperature_data.ds_buff.len[io - 1] - 1
+                                   );
+                        *len = temperature_data.ds_buff.len[io - 1] - 1;
+
+                        ret = TRUE;
+                    }
                 }
             }
-            else if ( 'O' == msg[offset + 1])
+            else if ( 4 == ( *len - offset ))
             {
-                io    = msg[offset + 2] - '0';
-                state = com_get_output_state( io );
-
-                if ( 0xFF != state )
+                if ( 'A' == msg[offset + 1])
                 {
-                    com_output_state_to_string( msg
-                                              , len
-                                              , io
-                                              , state
-                                              );
+                    uint16_t cnt = 0;
 
-                    ret = TRUE;
-                }
-            }
-            else if ( 'T' == msg[offset + 1])
-            {
-                io = msg[offset + 2 ] - '0';
+                    *len = 0;
 
-                if (( io - 1 ) < 2 )
-                {
-                    util_memcpy( msg
-                               , temperature_data.ds_buff.out[io - 1]
-                               , temperature_data.ds_buff.len[io - 1] - 1
+                    for ( i = 0; i < 2; i++ )
+                    {
+                        state = com_get_input_state( i + 1 );
+                        com_input_state_to_string( &msg[*len]
+                                                 , &cnt
+                                                 , i + 1
+                                                 , state
+                                                 );
+                        *len += cnt;
+                        msg[*len]     = ';';
+                        msg[*len + 1] = '\n';
+                        *len += 2;
+                    }
+
+                    for ( i = 0; i < 2; i++ )
+                    {
+                        state = com_get_output_state( i + 1 );
+                        com_output_state_to_string( &msg[*len]
+                                                  , &cnt
+                                                  , i + 1
+                                                  , state
+                                                  );
+                        *len += cnt;
+                        msg[*len]     = ';';
+                        msg[*len + 1] = '\n';
+                        *len += 2;
+                    }
+
+                    util_memcpy( &msg[*len]
+                               , temperature_data.ds_buff.out[0]
+                               , temperature_data.ds_buff.len[0] - 1
                                );
-                    *len = temperature_data.ds_buff.len[io - 1] - 1;
+                    *len += temperature_data.ds_buff.len[0] - 1;
+                    msg[*len]     = ';';
+                    msg[*len + 1] = '\n';
+                    *len += 2;
+
+                    util_memcpy( &msg[*len]
+                               , temperature_data.ds_buff.out[1]
+                               , temperature_data.ds_buff.len[1] - 1
+                               );
+                    *len += temperature_data.ds_buff.len[1] - 1;
+                    msg[*len]     = ';';
+                    msg[*len + 1] = '\n';
+                    *len += 2;
+
+                    for ( i = 0; i < 2; i++ )
+                    {
+                        com_heating_cooling_state_to_string( &msg[*len]
+                                                           , &cnt
+                                                           , i + 1
+                                                           , TRUE
+                                                           );
+                        *len += cnt;
+                        msg[*len]     = ';';
+                        msg[*len + 1] = '\n';
+                        *len += 2;
+                    }
+
+                    for ( i = 0; i < 2; i++ )
+                    {
+                        com_heating_cooling_state_to_string( &msg[*len]
+                                                           , &cnt
+                                                           , i + 1
+                                                           , FALSE
+                                                           );
+                        *len += cnt;
+                        msg[*len]     = ';';
+                        msg[*len + 1] = '\n';
+                        *len += 2;
+                    }
 
                     ret = TRUE;
                 }
-            }
-            else if ( 'A' == msg[offset + 1])
-            {
-                uint16_t cnt = 0;
-
-                *len = 0;
-
-                for ( i = 0; i < 2; i++ )
+                else if ( 'M' == msg[offset + 1])
                 {
-                    state = com_get_input_state( i + 1 );
-                    com_input_state_to_string( &msg[*len]
-                                             , &cnt
-                                             , i + 1
-                                             , state
-                                             );
-                    *len += cnt;
-                    msg[*len] = ';';
-                    *len += 1;
+                    /* TODO: Get master configuration */
                 }
-
-                for ( i = 0; i < 2; i++ )
-                {
-                    state = com_get_output_state( i + 1 );
-                    com_output_state_to_string( &msg[*len]
-                                              , &cnt
-                                              , i + 1
-                                              , state
-                                              );
-                    *len += cnt;
-                    msg[*len] = ';';
-                    *len += 1;
-                }
-
-                util_memcpy( &msg[*len]
-                           , temperature_data.ds_buff.out[0]
-                           , temperature_data.ds_buff.len[0] - 1
-                           );
-                *len += temperature_data.ds_buff.len[0] - 1;
-                msg[*len - 1] = ';';
-
-                util_memcpy( &msg[*len]
-                           , temperature_data.ds_buff.out[1]
-                           , temperature_data.ds_buff.len[1] - 1
-                           );
-                *len += temperature_data.ds_buff.len[1] - 1;
-                msg[*len - 1] = ';';
-
-                for ( i = 0; i < 2; i++ )
-                {
-                    com_heating_cooling_state_to_string( &msg[*len]
-                                                       , &cnt
-                                                       , i + 1
-                                                       , TRUE
-                                                       );
-                    *len += cnt;
-                    msg[*len] = ';';
-                    *len += 1;
-                }
-
-                for ( i = 0; i < 2; i++ )
-                {
-                    com_heating_cooling_state_to_string( &msg[*len]
-                                                       , &cnt
-                                                       , i + 1
-                                                       , FALSE
-                                                       );
-                    *len += cnt;
-                    msg[*len] = ';';
-                    *len += 1;
-                }
-
-                ret = TRUE;
             }
         }
         else if ( 'S' == msg[offset])
@@ -436,7 +488,7 @@ bool_t com_process_msg( uint8_t* msg, uint16_t* len, uint16_t offset )
             int16_t dot;
             int16_t tmp;
 
-            if ( 'O' == msg[offset + 1])
+            if (( 'O' == msg[offset + 1] ) && ( '.' == msg[offset + 3]))
             {
                 io    = msg[offset + 2] - '0';
                 state = msg[offset + 4] - '0';
@@ -458,7 +510,7 @@ bool_t com_process_msg( uint8_t* msg, uint16_t* len, uint16_t offset )
                     }
                 }
             }
-            else if ( 'T' == msg[offset + 1])
+            else if (( 'T' == msg[offset + 1] ) && ( '.' == msg[offset + 4] ))
             {
                 if (( 'H' == msg[offset + 2] ) || ( 'C' == msg[offset + 2] ))
                 {
@@ -489,6 +541,28 @@ bool_t com_process_msg( uint8_t* msg, uint16_t* len, uint16_t offset )
                         com_reset_timer( io );
                     }
                 }
+                if (( 'U' == msg[offset + 2] ) || ( 'D' == msg[offset + 2] ))
+                {
+                    io = msg[offset + 3] - '0';
+                    tmp = util_atoi( &msg[offset + 5]);
+
+                    if (( 1 == io ) || ( 2 == io ))
+                    {
+                        if ( 'U' == msg[offset + 2] )
+                        {
+                            gsm_props.temperature_threshold_up[io - 1] = tmp;
+                        }
+                        else
+                        {
+                            gsm_props.temperature_threshold_down[io - 1] = tmp;
+                        }
+
+                        flash_write((void*) &gsm_props
+                                   , sizeof(Com_Gsm_Props_t)
+                                   , 0
+                                   );
+                    }
+                }
             }
             else if ( 'M' == msg[offset + 1])
             {
@@ -498,84 +572,124 @@ bool_t com_process_msg( uint8_t* msg, uint16_t* len, uint16_t offset )
                 {
                     gsm_props.master_ctrl_enable = FALSE;
                 }
-                else if ( master_idx <= GSM_NUMBER_MAX_MASTER )
+                else if ( '.' == msg[offset + 3])
                 {
-                    for ( i = 0; ( 0 != msg[offset + 2 + i] ); i++ )
+                    if ( master_idx <= GSM_NUMBER_MAX_MASTER )
                     {
-                        if ((( msg[offset + 4 + i] < 48 )
-                        || ( msg[offset + 4 + i] > 57 ))
-                        && ( '+' != msg[offset + 4 + i]))
+                        for ( i = 0; ( 0 != msg[offset + 2 + i] ); i++ )
+                        {
+                            if ((( msg[offset + 4 + i] < 48 )
+                            || ( msg[offset + 4 + i] > 57 ))
+                            && ( '+' != msg[offset + 4 + i]))
+                            {
+                                break;
+                            }
+                            gsm_props.master_number[master_idx - 1][i] =
+                                                            msg[offset + 4 + i];
+                        }
+
+                        gsm_props.master_ctrl_enable = TRUE;
+                    }
+                }
+
+                flash_write((void*) &gsm_props
+                           , sizeof(Com_Gsm_Props_t)
+                           , 0
+                           );
+            }
+            else if ( 'A' == msg[offset + 1])
+            {
+                if ( '.' == msg[offset + 2])
+                {
+                    for ( i = 0; ( 0 != msg[offset + 1 + i] ); i++ )
+                    {
+                        if ((( msg[offset + 3 + i] < 48 )
+                        || ( msg[offset + 3 + i] > 57 ))
+                        && ( '+' != msg[offset + 3 + i]))
                         {
                             break;
                         }
-                        gsm_props.master_number[master_idx - 1][i] =
-                                                            msg[offset + 4 + i];
-                    }
-
-                    gsm_props.master_ctrl_enable = TRUE;
-                }
-
-                flash_write((void*) &gsm_props
-                           , sizeof(Com_Gsm_Props_t)
-                           , 0
-                           );
-            }
-            else if (( 'R' == msg[offset + 1] ) && ( 'A' == msg[offset + 2] ))
-            {
-                i = msg[offset + 4] - '0';
-
-                if ( 0 == i )
-                {
-                    gsm_props.ring_auto_answer = FALSE;
-                }
-                else if ( 1 == i )
-                {
-                    gsm_props.ring_auto_answer       = TRUE;
-                    gsm_props.ring_relay_attach      = 0;
-                    gsm_props.ring_relay_toggle_time = 0;
-                }
-
-                flash_write((void*) &gsm_props
-                           , sizeof(Com_Gsm_Props_t)
-                           , 0
-                           );
-            }
-            else if (( 'R' == msg[offset + 1] ) && ( 'R' == msg[offset + 2] ))
-            {
-                io = msg[offset + 3] - '0';
-
-                if ( 0 == io )
-                {
-                    gsm_props.ring_relay_attach      = 0;
-                    gsm_props.ring_relay_toggle_time = 0;
-                }
-                else if (( 1 == io ) || ( 2 == io ))
-                {
-                    gsm_props.ring_auto_answer  = FALSE;
-                    gsm_props.ring_relay_attach = io;
-
-                    dot = util_find_char( &msg[offset + 5], *len - 4, '.' );
-
-                    if ( -1 != dot )
-                    {
-                        gsm_props.ring_relay_toggle_time =
-                            (uint16_t) util_atoi( &msg[offset + 5 + dot + 1]);
-                        
-                        if ( 0 == gsm_props.ring_relay_toggle_time )
-                        {
-                            gsm_props.ring_relay_attach = 0;
-                        }
-                    }
-                    else
-                    {
-                        gsm_props.ring_relay_attach      = 0;
-                        gsm_props.ring_relay_toggle_time = 0;
+                        gsm_props.master_number[GSM_NUMBER_MAX_MASTER][i] =
+                                                        msg[offset + 3 + i];
                     }
 
                     flash_write((void*) &gsm_props
                                , sizeof(Com_Gsm_Props_t)
                                , 0
                                );
+                }
+            }
+            else if (( 'R' == msg[offset + 1] ) && ( 'A' == msg[offset + 2] ))
+            {
+                if ( '.' == msg[offset + 3])
+                {
+                    i = msg[offset + 4] - '0';
+
+                    if ( 0 == i )
+                    {
+                        gsm_props.ring_auto_answer = FALSE;
+                    }
+                    else if ( 1 == i )
+                    {
+                        gsm_props.ring_auto_answer       = TRUE;
+                        gsm_props.ring_relay_attach      = 0;
+                        gsm_props.ring_relay_toggle_time = 0;
+                    }
+
+                    flash_write((void*) &gsm_props
+                            , sizeof(Com_Gsm_Props_t)
+                            , 0
+                            );
+
+                    gsm_call_cfg_flag = TRUE;
+                }
+            }
+            else if (( 'R' == msg[offset + 1] ) && ( 'R' == msg[offset + 2] ))
+            {
+                if ( '.' == msg[offset + 4])
+                {
+                    io = msg[offset + 3] - '0';
+
+                    if ( 0 == io )
+                    {
+                        gsm_props.ring_relay_attach      = 0;
+                        gsm_props.ring_relay_toggle_time = 0;
+                    }
+                    else if (( 1 == io ) || ( 2 == io ))
+                    {
+                        gsm_props.ring_auto_answer  = FALSE;
+                        gsm_props.ring_relay_attach = io;
+
+                        gsm_props.ring_relay_toggle_time = (uint16_t) \
+                                                util_atoi( &msg[offset + 5]);
+
+                        flash_write((void*) &gsm_props
+                                   , sizeof(Com_Gsm_Props_t)
+                                   , 0
+                                   );
+
+                        gsm_call_cfg_flag = TRUE;
+                    }
+                }
+            }
+            else if (( 'I' == msg[offset + 1]) && ( 'C' == msg[offset + 2]))
+            {
+                if (( '.' == msg[offset + 4])
+                && (( ';' == msg[offset + 6])
+                || ( '\r' == msg[offset + 6])))
+                {
+                    io    = msg[offset + 3] - '0';
+                    state = msg[offset + 5] - '0';
+
+                    if ((( 1 == io ) || ( 2 == io )) && ( state < 2 ))
+                    {
+                        gsm_props.input_sms_on_change[io - 1] = state;
+
+                        flash_write((void*) &gsm_props
+                                   , sizeof(Com_Gsm_Props_t)
+                                   , 0
+                                   );
+                    }
                 }
             }
         }
@@ -598,11 +712,14 @@ void com_task_temp( void )
 
         if (( temperature_data.ds_hdl->last_temperature[0] >> 4 ) < 100 )
         {
-            temperature_data.ds_buff.out[0][7] = ' ';
+            temperature_data.ds_buff.out[0][7] = '\0';
+            temperature_data.ds_buff.len[0]    = 8;
         }
-
-        temperature_data.ds_buff.out[0][8] = '\0';
-        temperature_data.ds_buff.len[0]    = 9;
+        else
+        {
+            temperature_data.ds_buff.out[0][8] = '\0';
+            temperature_data.ds_buff.len[0]    = 9;
+        }
 
         if ( temperature_data.ds_hdl->no_of_dev > 1 )
         {
@@ -818,4 +935,9 @@ uint8_t* com_get_buff_hdl( void )
 Com_Gsm_Props_t* com_get_gsm_props_hdl( void )
 {
     return &gsm_props;
+}
+
+bool_t* com_get_gsm_call_cfg_flag_hdl( void )
+{
+    return &gsm_call_cfg_flag;
 }

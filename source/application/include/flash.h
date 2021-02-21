@@ -7,6 +7,7 @@
  **
  ** Revision
  **   28-Aug-2020 (SSB) [] Initial
+ **   24-Feb-2021 (SSB) [] Implement basic functionality
  **/
 
 #ifndef __FLASH_H__
@@ -43,5 +44,6 @@
 
 status_t flash_read( void* buff, uint32_t size, uint32_t offset );
 status_t flash_write( void* buff, uint32_t size, uint32_t offset );
+status_t flash_erase( void );
 
 #endif /* __FLASH_H__ */

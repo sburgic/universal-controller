@@ -7,6 +7,7 @@
  **
  ** Revision
  **   31-Jan-2021 (SSB) [] Initial
+ **   24-Feb-2021 (SSB) [] Add GSM support
  **/
 
 #include <stm32f1xx_hal.h>
@@ -57,7 +58,7 @@ void HAL_UART_MspInit( UART_HandleTypeDef* huart )
         GPIO_InitStruct.Pull = GPIO_NOPULL;
         HAL_GPIO_Init( GPIOA, &GPIO_InitStruct );
 
-        HAL_NVIC_SetPriority( USART1_IRQn, 2, 3 );
+        HAL_NVIC_SetPriority( USART1_IRQn, 0, 0 );
         HAL_NVIC_EnableIRQ( USART1_IRQn );
         HAL_NVIC_ClearPendingIRQ( USART1_IRQn );
     }
@@ -79,6 +80,18 @@ void HAL_UART_MspInit( UART_HandleTypeDef* huart )
         HAL_NVIC_SetPriority( USART2_IRQn, 4, 3 );
         HAL_NVIC_EnableIRQ( USART2_IRQn );
         HAL_NVIC_ClearPendingIRQ( USART2_IRQn );
+    }
+}
+
+void HAL_UART_MspDeInit( UART_HandleTypeDef* huart )
+{
+    if ( USART1 == huart->Instance )
+    {
+        __HAL_RCC_USART1_FORCE_RESET();
+        __HAL_RCC_USART1_RELEASE_RESET();
+
+        HAL_GPIO_DeInit( GPIOA, GPIO_PIN_9 );
+        HAL_GPIO_DeInit( GPIOA, GPIO_PIN_10 );
     }
 }
 

@@ -7,6 +7,7 @@
  **
  ** Revision
  **   17-Dec-2020 (SSB) [] Initial
+ **   24-Feb-2021 (SSB) [] Add GSM support
  **/
 
 #ifndef __COMMON_H__
@@ -36,7 +37,7 @@ typedef struct
     uint16_t temperature_threshold_up[COM_MAX_TEMP_DEVICES];
     uint16_t temperature_threshold_down[COM_MAX_TEMP_DEVICES];
     bool_t   master_ctrl_enable;
-    uint8_t  master_number[GSM_NUMBER_MAX_MASTER][GSM_NUMBER_MAX_SIZE];
+    uint8_t  master_number[GSM_NUMBER_MAX_MASTER + 1][GSM_NUMBER_MAX_SIZE];
 } Com_Gsm_Props_t;
 
 enum
@@ -70,6 +71,7 @@ typedef struct
 void com_error_handler( void );
 uint8_t com_ext_board_detect( void );
 uint8_t com_get_output_state( uint8_t output );
+status_t com_toggle_output_state( uint8_t output );
 status_t com_set_output_state( uint8_t output, uint8_t new_state );
 uint8_t com_get_input_state( uint8_t input );
 void com_input_state_to_string( uint8_t*  buff
@@ -99,5 +101,6 @@ void com_task_lcd_heating_cooling( bool_t flag );
 Com_Temp_Data_t* com_get_temp_hdl( void );
 uint8_t* com_get_buff_hdl( void );
 Com_Gsm_Props_t* com_get_gsm_props_hdl( void );
+bool_t* com_get_gsm_call_cfg_flag_hdl( void );
 
 #endif /* __COMMON_H__ */
