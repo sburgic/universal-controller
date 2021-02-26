@@ -730,11 +730,14 @@ void com_task_temp( void )
 
             if (( temperature_data.ds_hdl->last_temperature[1] >> 4 ) < 100 )
             {
-                temperature_data.ds_buff.out[1][7] = ' ';
+                temperature_data.ds_buff.out[1][7] = '\0';
+                temperature_data.ds_buff.len[1]    = 8;
             }
-
-            temperature_data.ds_buff.out[1][8] = '\0';
-            temperature_data.ds_buff.len[1]    = 9;
+            else
+            {
+                temperature_data.ds_buff.out[1][8] = '\0';
+                temperature_data.ds_buff.len[1]    = 9;
+            }
         }
         else
         {
@@ -747,25 +750,22 @@ void com_task_temp( void )
     }
     else
     {
-        util_memcpy( &temperature_data.ds_buff.out[0][3]
-                   , (uint8_t*) "N/A "
-                   , 4
-                   );
-        temperature_data.ds_buff.len[0] = 7;
-
-        util_memcpy( &temperature_data.ds_buff.out[1][3]
-                   , (uint8_t*) "N/A "
-                   , 4
-                   );
-        temperature_data.ds_buff.len[1] = 7;
+        for ( i = 0; i < COM_MAX_TEMP_DEVICES; i++ )
+        {
+            util_memcpy( &temperature_data.ds_buff.out[i][3]
+                       , (uint8_t*) "N/A "
+                       , 4
+                       );
+            temperature_data.ds_buff.len[i] = 7;
+        }
     }
 
-    for ( i = 0; i < 2; i++ )
+    for ( i = 0; i < COM_MAX_TEMP_DEVICES; i++ )
     {
         lcd_puts_xy( temperature_data.ds_buff.out[i]
-                    , ( 0 == i ) ? 0 : 8
-                    , 0
-                    );
+                   , ( 0 == i ) ? 0 : 8
+                   , 0
+                   );
     }
 }
 
