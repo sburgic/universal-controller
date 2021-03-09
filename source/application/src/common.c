@@ -8,6 +8,7 @@
  ** Revision
  **   17-Dec-2020 (SSB) [] Initial
  **   24-Feb-2021 (SSB) [] Add GSM support
+ **   08-Mar-2021 (SSB) [] Add heating mode hysteresis
  **/
 
 #include "common.h"
@@ -771,7 +772,8 @@ void com_task_temp( void )
 
 void com_task_heating_cooling( void )
 {
-    uint8_t i;
+    uint8_t       i;
+    static bool_t heat_started = FALSE;
 
     for ( i = 0; i < 2; i++ )
     {
@@ -780,14 +782,35 @@ void com_task_heating_cooling( void )
         {
             if ( FALSE != temperature_data.heat_cool.flag[i] )
             {
-                if ( temperature_data.heat_cool.value[i]
-                > ( temperature_data.ds_hdl->last_temperature[i] >> 4 ))
+                if ( FALSE == heat_started )
                 {
-                    com_set_output_state( i + 1, 1 );
+                    if (( temperature_data.ds_hdl->last_temperature[i] >> 4 )
+                     <= ( temperature_data.heat_cool.value[i] - 2 ))
+                    {
+                        com_set_output_state( i + 1, 1 );
+                        heat_started = TRUE;
+                    }
                 }
                 else
                 {
-                    com_set_output_state( i + 1, 0 );
+                    if ( FALSE != heat_started )
+                    {
+                        if (( temperature_data.ds_hdl->last_temperature[i] >> 4 )
+                          < ( temperature_data.heat_cool.value[i]))
+                        {
+                            com_set_output_state( i + 1, 1 );
+                        }
+                        else
+                        {
+                            com_set_output_state( i + 1, 0 );
+                            heat_started = FALSE;
+                        }
+                    }
+                    else
+                    {
+                        com_set_output_state( i + 1, 0 );
+                        heat_started = FALSE;
+                    }
                 }
             }
             else
