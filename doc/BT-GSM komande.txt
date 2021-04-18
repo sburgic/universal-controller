@@ -1,0 +1,34 @@
+ZAJEDNICKE KOMANDE ZA BLUETOOTH i GSM
+
+RTS.GA - vraca stanje na oba ulaza, oba izlaza, obe temperature, info o modu hladnjenja/grijanja
+RTS.SO1.1 - upali relej 1
+RTS.SO1.0 - ugasi relej 1
+RTS.SO2.1 - upali relej 2
+RTS.SO2.0 - ugasi relej 2
+RTS.SO1.1.100 - upali  relej jedan na 100 minuta
+RTS.GI1 - vrati stanje ulaza 1
+RTS.GT1 - vrati stanje temperature 1
+RTS.GO2 - vrati stanje releja 2
+RTS.STH1.20 - podesi grijanje na 20 stepeni preko temperaturnog senzora 1 (relej 1)
+RTS.STC2.20 - podesi hladjenje na 20 stepeni preko temperaturnog senzora 2 (relej 2)
+RTS.STH1.20.20 - podesi grijanje na 20 stepeni preko temperaturnog senzora 1 (relej 1) ali samo 20 minuta
+
+DODATNE KOMANDE SAMO ZA GSM
+
+RTS.SA.+38765111222 - setuje navedeni broj kao admin broj (broj se uvijek pise u formatu +387... ili +43...)
+RTS.SM1.+38765111222 - setuje navedeni broj kao master 1 broj (master brojevi mogu ici od 1 do 8)
+RTS.SRA.1 - automatsko javljanje nakon 3 zvona ukljuceno
+RTS.SRA.0 - automatsko javljanje nakon 3 zvona iskljuceno
+RTS.STU1.40 - setuj gornju temperaturu za senzor jedan na 40 stepeni, koja ako se predje dobices sms na master broj 1
+(trenutno mora ici na master broj 1, nema podrske da se setuje broj. ako master 1 nije podesen prije ovoga, onda se nista nece desiti dok god se taj broj ne podesi)
+RTS.STD1.10 - setuj donju temperaturu za senzor jedan na 10 stepeni, koja ako padne ispod, dobices sms na master broj 1
+RTS.STU1.0 - ponistava setovanje komande RTS.STU1.40
+RTS.STD1.0 - ponistava setovanje komande RTS.STD1.10
+RTS.SRR1.1 - na poziv toggle-uje relej 1
+RTS.SRR2.1 - na poziv toggle-uje relej 2
+RTS.SRR2.1.10 - na poziv toggle-uje relej 2 ali samo na 10 sekundi, a onda ga vrati na staro
+RTS.SIC1.1 - dobijas SMS kad se promijeni stanje na ulazu 1 na master 1 broj
+RTS.SIC2.1 - dobijas SMS kad se promijeni stanje na ulazu 2 na master 1 broj
+RTS.SIC2.0 - ponistavanje komande RTS.SIC2.1
+
+napomena: admin i master brojevi se ne moraju setovati, ali samim tim odredjene komande nemaju efekta.
