@@ -28,17 +28,19 @@
 #define BT_CMD_SET_PIN  ((uint8_t*)"AT+PIN")
 
 #define BT_RESP_AT_OK   ((uint8_t*)"OK")
-#define BT_RESP_AT_NAME ((uint8_t*)"OKsetname")
-#define BT_RESP_AT_PIN  ((uint8_t*)"OKsetPIN")
+#define BT_RESP_AT_NAME ((uint8_t*)"OKsetname\r\n")
+#define BT_RESP_AT_PIN  ((uint8_t*)"OKsetPIN\r\n")
 
 static uint8_t* bt_buff;
 
-static uint16_t bt_get_response( uint8_t* buff, uint16_t len )
+static uint16_t bt_get_response( uint8_t* buff, uint8_t* expected )
 {
     uint16_t cnt = 0;
     Bsp_Time timeout;
     bool_t   is_timed_out;
     bool_t   is_empty;
+    bool_t   first_read = TRUE;
+    uint8_t  ch;
 
     bsp_set_timeout( BT_RESP_TIMEOUT_MS
                    , BSP_TIME_MSEC
@@ -52,10 +54,30 @@ static uint16_t bt_get_response( uint8_t* buff, uint16_t len )
 
         if ( FALSE == is_empty )
         {
-            buff[cnt] = uart_getc( BT_UART );
-            cnt++;
+            ch = uart_getc( BT_UART );
+
+            if ( 0 != ch )
+            {
+                if ( FALSE != first_read )
+                {
+                    if ( ch == expected[0] )
+                    {
+                        buff[cnt++]  = ch;
+                        first_read = FALSE;
+                    }
+                }
+                else
+                {
+                    buff[cnt++] = ch;
+
+                    if ( UART1_STRING_DELIMITER == buff[cnt - 1] )
+                    {
+                        break;
+                    }
+                }
+            }
         }
-    } while (( cnt < len ) && ( FALSE == is_timed_out ));
+    } while ( FALSE == is_timed_out );
 
     return cnt;
 }
@@ -63,6 +85,8 @@ static uint16_t bt_get_response( uint8_t* buff, uint16_t len )
 status_t bt_init( void )
 {
     status_t ret = STATUS_OK;
+    uint16_t cnt = 0;
+    int16_t  res = -1;
 
     bt_buff = com_get_buff_hdl();
     bsp_wait( 1000, BSP_TIME_MSEC );
@@ -70,39 +94,57 @@ status_t bt_init( void )
 
     if ( STATUS_ERROR != ret )
     {
+        ret = STATUS_ERROR;
         uart_send( BT_UART, BT_CMD_AT, 2 );
 
-        bt_get_response( bt_buff, 2 );
+        cnt = bt_get_response( bt_buff, BT_RESP_AT_OK );
 
-        if ( 0 != util_strcmp( bt_buff, BT_RESP_AT_OK, 2 ))
+        if ( cnt == util_strnlen( BT_RESP_AT_OK, COM_BUFF_SIZE ))
         {
-            ret = STATUS_ERROR;
+            res = util_strcmp( bt_buff, BT_RESP_AT_OK, cnt );
+
+            if ( 0 == res )
+            {
+                ret = STATUS_OK;
+            }
         }
     }
 
     if ( STATUS_ERROR != ret )
     {
+        ret = STATUS_ERROR;
         uart_send( BT_UART, BT_CMD_SET_NAME, 7 );
         uart_send( BT_UART, BT_DEF_NAME, 11 );
 
-        bt_get_response( bt_buff, 9 );
+        cnt = bt_get_response( bt_buff, BT_RESP_AT_NAME );
 
-        if ( 0 != util_strcmp( bt_buff, BT_RESP_AT_NAME, 9 ))
+        if ( cnt == util_strnlen( BT_RESP_AT_NAME, COM_BUFF_SIZE ))
         {
-            ret = STATUS_ERROR;
+            res = util_strcmp( bt_buff, BT_RESP_AT_NAME, cnt );
+
+            if ( 0 == res )
+            {
+                ret = STATUS_OK;
+            }
         }
     }
 
     if ( STATUS_ERROR != ret )
     {
+        ret = STATUS_ERROR;
         uart_send( BT_UART, BT_CMD_SET_PIN, 6 );
         uart_send( BT_UART, BT_DEF_PIN, 4 );
 
-        bt_get_response( bt_buff, 8 );
+        cnt = bt_get_response( bt_buff, BT_RESP_AT_PIN );
 
-        if ( 0 != util_strcmp( bt_buff, BT_RESP_AT_PIN, 8 ))
+        if ( cnt == util_strnlen( BT_RESP_AT_PIN, COM_BUFF_SIZE ))
         {
-            ret = STATUS_ERROR;
+            res = util_strcmp( bt_buff, BT_RESP_AT_PIN, cnt );
+
+            if ( 0 == res )
+            {
+                ret = STATUS_OK;
+            }
         }
     }
 
